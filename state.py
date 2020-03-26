@@ -48,25 +48,26 @@ def shunt(infix):
     while infix:
         # Pop a character from the input.
         c = infix.pop()
+
          # Decide what to do based on the character
-        if c == '(' :
-        # Push c to the operator stack
-             opers.append(c)
-         elif c == ')':
-            # Pop the operators stack until you find an (.
-            while opers[-1] != '(':
-                postfix.append(opers.pop())
+        if c == '(':
+            # Push an open bracket to the opers stack. 
+            opers.append(c)
+        elif c == ')':
+             # Pop the operators stack until you find an (. 
+             while opers[-1] != '(':
+                 postfix.append(opers.pop())
             # Get rid of the '('.
             opers.pop()
         elif c in prec:
             # Push any operators on the opers stack with higher prec to the output.
             while opers and prec[c] < prec[opers[-1]]:
                 postfix.append(opers.push())
-        # Push c to the operator stack.
-        opers.append(c)
-    else:
-        # Typically, We just push the character to the output.
-        postfix.append(c)
+            # Push c to the operator stack.
+            opers.append(c)
+        else:
+            # Typically, We just push the character to the output.
+            postfix.append(c)
     # Pop all operators to the output.
     while opers:
         postfix.append(opers.pop())
@@ -83,19 +84,48 @@ def regex_compile(infix):
     while postfix:
         # Pop a character from postfix.
         c = postfix.pop()
-        if c == '*':
-            # Do something here
-        elif c == '.':
-            # Do something here
+        if c == '.':
+            # Pop two fragments off the stack.
+            frag1 = nfa_stack.pop()
+            frag2 = nfa_stack.pop()
+            # Point frag2's accept state at frag1's start state.
+            frag2.edges.append(frag1.start)
+            # Create new instance of fragment to represent the new NFA
+            newfrag = Fragment(frag2.start, frag1.accept)
         elif c == '|':
-            #Do something here
+            # Pop two fragments off the stack.
+            frag1 = nfa_stack.pop()
+            frag2 = nfa_stack.pop()
+            # Create new start and accept states.
+            accept = State()
+            start = State(edges=[frag2.start, frag1.start])
+            # Point the old accept states at the new one.
+            frag2.edges.append(accept)
+            frag1.edges.append(accept)
+            # Create new instance of Fragment to represent the new NFA.
+            newfrag = Fragment(start, accept)
+        elif c == '*':
+           # Pop a single fragment off the stack.
+           frag = nfa_stack.pop()
+           # Create new start and accept states.
+           accept = State()
+           start = State(edges = [frag.start, accept])
+           # Point the arrows.
+           frag.accept.edges = [frag.start, accept]
+           # Create new instance of fragment to represent the new NFA.
+           newfrag = Fragment(start, accept)
         else:
             accept = State()
-            initial = State(label=c, edges=[accept])
-            newfrag = Fragment(initial, accept)
-            nfa_stack.append(newfrag)
-            
+            start = State(label=c, edges=[accept])
+            # Create new instance of Fragment to represent the new NFA
+            newfrag = Fragment(start, accept)
 
+
+        # Push the new NFA to the NFA stack.
+        nfa_stack.append(newfrag)
+
+    # The NFA stack should have excatly one NFA on it
+    return nfa_stack.pop()
 
 
 def match(regex, s):
@@ -105,9 +135,9 @@ def match(regex, s):
     # Compile the regular expression into an NFA.
     nfa = regex_compile(regex)
     # Ask the NFA if it matches the String s.
-    return nfa.match(s)
+    return nfa
 
-match("a.b|b*", "bbbbbbbbb")
+return(match("a.b|b*", "bbbbbbbbb"))
 
 
 
