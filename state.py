@@ -51,14 +51,14 @@ def shunt(infix):
 
          # Decide what to do based on the character
         if c == '(':
-            # Push an open bracket to the opers stack. 
+            # Push an open bracket to the opers stack.
             opers.append(c)
         elif c == ')':
-             # Pop the operators stack until you find an (. 
+             # Pop the operators stack until you find an (.
              while opers[-1] != '(':
                  postfix.append(opers.pop())
             # Get rid of the '('.
-            opers.pop()
+             opers.pop()
         elif c in prec:
             # Push any operators on the opers stack with higher prec to the output.
             while opers and prec[c] < prec[opers[-1]]:
@@ -137,7 +137,4 @@ def match(regex, s):
     # Ask the NFA if it matches the String s.
     return nfa
 
-return(match("a.b|b*", "bbbbbbbbb"))
-
-
-
+    return(match("a.b|b*", "bbbbbbbbb"))
