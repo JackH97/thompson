@@ -3,30 +3,26 @@
 
 
 class State:
-    # Every state has 0, 1, or 2 edges from it.
-    edges = []
-
-    # Label for the arrows, None means epsilon
-    label = None
+    """A state with one or two arrows, all edges labeled by label."""
 
     # Constructor for the class
     def __init__(self, label=None, edges=[]):
+        # Label for the arrows, None means epsilon
         self.edges = edges
+        # Every state has 0, 1, or 2 edges from it. 
         self.label = label
 
 
 class Fragment:
-    # Start state of NFA fragment.
-    start = None
-    # Accept state of NFA fragment.
-    accept = None
-
+    """An NFA fragment with a start state and an accept state."""
     # Constructor
     def __init__(self, start, accept):
         self.start = start
         self.accept = accept
 
 def shunt(infix):
+    """Return the infix regular expression in postfix"""
+
     # Convert input to a stack-ish list.
     infix = list(infix)[::-1]
 
@@ -36,7 +32,7 @@ def shunt(infix):
     # Output list.
     postfix = []
 
-    # Operator precedence
+    # Postfix regular expression.
     prec = {'*': 100, '.': 80, '|': 60, ')': 40, '(': 20}
 
     # Loop through the input one character at a time.
@@ -71,9 +67,13 @@ def shunt(infix):
 
 
 def compile(infix):
+    """Return NFA fragment representing the infix regular expression."""
+    # Convert infix to postfix.
     postfix = shunt(infix)
+    # Make postfix a stack of characters.
     postfix = list(postfix)[::-1]
 
+    # A stack for NFA fragments.
     nfa_stack = []
 
     while postfix:
@@ -85,8 +85,10 @@ def compile(infix):
             frag2 = nfa_stack.pop()
             # Point frag2's accept state at frag1's start state.
             frag2.accept.edges.append(frag1.start)
-            # Create new instance of fragment to represent the new NFA
-            newfrag = Fragment(frag2.start, frag1.accept)
+            # The new start state is frag2's
+            start = frag2.start
+            # The new accept state is frag1's
+            accept = frag1.accept
         elif c == '|':
             # Pop two fragments off the stack.
             frag1 = nfa_stack.pop()
@@ -97,8 +99,6 @@ def compile(infix):
             # Point the old accept states at the new one.
             frag2.accept.edges.append(accept)
             frag1.accept.edges.append(accept)
-            # Create new instance of Fragment to represent the new NFA.
-            newfrag = Fragment(start, accept)
         elif c == '*':
            # Pop a single fragment off the stack.
            frag = nfa_stack.pop()
@@ -107,14 +107,12 @@ def compile(infix):
            start = State(edges = [frag.start, accept])
            # Point the arrows.
            frag.accept.edges = [frag.start, accept]
-           # Create new instance of fragment to represent the new NFA.
-           newfrag = Fragment(start, accept)
         else:
             accept = State()
             start = State(label=c, edges=[accept])
-            # Create new instance of Fragment to represent the new NFA
-            newfrag = Fragment(start, accept)
-
+                      
+        # Create new instance of fragment to represent the new NFA
+        newfrag = Fragment(start, accept)
 
         # Push the new NFA to the NFA stack.
         nfa_stack.append(newfrag)
@@ -124,7 +122,7 @@ def compile(infix):
 
 # Add a state to a set, and follow all of the e(psilon) arrows
 def followes(state, current):
-    # Only do something when we haven't already seen the state.
+    # Only do something when we haven't already seen the state.  
     if state not in current:
         # it the state itself into current.
         current.add(state)
@@ -171,4 +169,16 @@ def match(regex, s):
     return nfa.accept in current
 
 
-print(match("a.b|b*", "bbbbbbbbbx"))
+if __name__== "__main__":
+    tests = [
+            ["a.b|b*", "bbbbbb", True],
+            ["a.b|b*", "bbx", False],
+            ["a.b", "ab", True],
+            ["b**", "b", True],
+            ["b*", "", True]
+            ]
+
+    for test in tests:
+        assert match(test[0], test[1]) == test[2], test[0] + (" should " if test[2] else " should not match") + "match" + test[1]
+
+
