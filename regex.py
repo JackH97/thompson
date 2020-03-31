@@ -14,11 +14,6 @@ class State:
         self.edges = edges
         self.label = label
 
-myinstance = State(label='a', edges=[])
-myotherinstance = State(edges=[myinstance])
-print(myinstance.label)
-print(myotherinstance.edges[0])
-
 
 class Fragment:
     # Start state of NFA fragment.
@@ -33,7 +28,7 @@ class Fragment:
 
 def shunt(infix):
     # Convert input to a stack-ish list.
-    infix = list(infix) [::-1]
+    infix = list(infix)[::-1]
 
     # Operator stack.
     opers = []
@@ -62,7 +57,7 @@ def shunt(infix):
         elif c in prec:
             # Push any operators on the opers stack with higher prec to the output.
             while opers and prec[c] < prec[opers[-1]]:
-                postfix.append(opers.push())
+                postfix.append(opers.pop())
             # Push c to the operator stack.
             opers.append(c)
         else:
@@ -75,7 +70,7 @@ def shunt(infix):
     return ''.join(postfix)
 
 
-def regex_compile(infix):
+def compile(infix):
     postfix = shunt(infix)
     postfix = list(postfix)[::-1]
 
@@ -89,7 +84,7 @@ def regex_compile(infix):
             frag1 = nfa_stack.pop()
             frag2 = nfa_stack.pop()
             # Point frag2's accept state at frag1's start state.
-            frag2.edges.append(frag1.start)
+            frag2.accept.edges.append(frag1.start)
             # Create new instance of fragment to represent the new NFA
             newfrag = Fragment(frag2.start, frag1.accept)
         elif c == '|':
@@ -100,8 +95,8 @@ def regex_compile(infix):
             accept = State()
             start = State(edges=[frag2.start, frag1.start])
             # Point the old accept states at the new one.
-            frag2.edges.append(accept)
-            frag1.edges.append(accept)
+            frag2.accept.edges.append(accept)
+            frag1.accept.edges.append(accept)
             # Create new instance of Fragment to represent the new NFA.
             newfrag = Fragment(start, accept)
         elif c == '*':
@@ -127,14 +122,53 @@ def regex_compile(infix):
     # The NFA stack should have excatly one NFA on it
     return nfa_stack.pop()
 
+# Add a state to a set, and follow all of the e(psilon) arrows
+def followes(state, current):
+    # Only do something when we haven't already seen the state.
+    if state not in current:
+        # it the state itself into current.
+        current.add(state)
+        # See whether state is labelled by e(psilon).
+        if state.label is None:
+            # Loop through the states pointed to by this state.
+            for x in state.edges:
+                # Follow all of their e(psilon)s too.
+                followes(x, current)
 
 def match(regex, s):
     # This function will return true and only if the regular expression
     # regex (fully) matches the string s. It returns false otherwise.
 
     # Compile the regular expression into an NFA.
-    nfa = regex_compile(regex)
-    # Ask the NFA if it matches the String s.
-    return nfa
+    nfa = compile(regex)
 
-    return(match("a.b|b*", "bbbbbbbbb"))
+    # Try to match the regular expression to the String s.
+
+    # The current set of states.
+    current = set()
+    # Add the first state, and follow all e(psilon) arrows.
+    followes(nfa.start, current)
+    # The previous set of states.
+    previous = set()
+
+    # Loop through characters in s.
+    for c in s:
+        # Keep track of where we where
+        previous = current
+        # Create a new empty set for states we're about to be in
+        current = set()
+        # Loop through the previous states.
+        for state in previous:
+            # Only follow arrows not labelled by e(psilon)
+            if state.label is not None:
+                # If the label of state is = to the char we've read:
+                if state.label == c:
+                    # Add state(s) at the end of the arrow to current.
+                    followes(state.edges[0], current) 
+
+
+    # Ask the NFA if it matches the String s.
+    return nfa.accept in current
+
+
+print(match("a.b|b*", "bbbbbbbbbx"))
