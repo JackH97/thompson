@@ -6,9 +6,9 @@ class State:
     """A state with one or two arrows, all edges labeled by label."""
 
     # Constructor for the class
-    def __init__(self, label=None, edges=[]):
+    def __init__(self, label=None, edges=None):
         # Label for the arrows, None means epsilon
-        self.edges = edges
+        self.edges = edges if edges else[]
         # Every state has 0, 1, or 2 edges from it. 
         self.label = label
 
